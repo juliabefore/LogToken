@@ -40,7 +40,7 @@ public class LogToken {
         this.message = message;
     }
 
-    enum HttpMethod{
+    public enum HttpMethod{
         GET("GET"),
         POST("POST");
 
