@@ -6,35 +6,31 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Locale;
+import static com.miskevich.io.LogToken.HttpMethod.GET;
+import static com.miskevich.io.LogToken.HttpMethod.POST;
 
 
-public class LogAnalyzer {
+public class LogAnalyzer implements ILogAnalyzer{
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss");
 
     public Collection<LogToken> scanLog(String path, LocalDateTime timeFrom, LocalDateTime timeTo) {
         Collection<LogToken> tokenCollection = new ArrayList<>();
 
         File file = new File(path);
-        try(Reader reader = new FileReader(file);
-            BufferedReader bufferedReader = new BufferedReader(reader)){
+        try(BufferedReader bufferedReader = new BufferedReader(new FileReader(file))){
             String line;
             while ((line = bufferedReader.readLine()) != null){
-
-
-                DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MMM/yyyy:HH:mm:ss");
-                LocalDateTime formattedLogDate = LocalDateTime.parse(getLogTime(line), formatter.withLocale(Locale.ENGLISH));
-
-                int logDateAfterTimeFrom = formattedLogDate.compareTo(timeFrom);
-                int logDateBeforeTimeFrom = formattedLogDate.compareTo(timeTo);
-                if(logDateAfterTimeFrom == 1 && logDateBeforeTimeFrom == -1){
+                LocalDateTime formattedLogDate = LocalDateTime.parse(getLogTime(line), DATE_TIME_FORMATTER.withLocale(Locale.ENGLISH));
+                if(inRange(timeFrom, timeTo, formattedLogDate)){
                     LogToken logToken = new LogToken();
-
                     logToken.setTime(formattedLogDate);
 
                     String logMethod = getMethod(line);
-                    if(logMethod.equals(LogToken.HttpMethod.GET.getValue())){
-                        logToken.setMethod(LogToken.HttpMethod.GET);
-                    }else if(logMethod.equals(LogToken.HttpMethod.POST.getValue())){
-                        logToken.setMethod(LogToken.HttpMethod.POST);
+                    if(logMethod.equals(GET.getValue())){
+                        logToken.setMethod(GET);
+                    }else if(logMethod.equals(POST.getValue())){
+                        logToken.setMethod(POST);
                     }
 
                     logToken.setMessage(getMessage(line));
@@ -49,6 +45,10 @@ public class LogAnalyzer {
 
 
         return tokenCollection;
+    }
+
+    private boolean inRange(LocalDateTime timeFrom, LocalDateTime timeTo, LocalDateTime formattedLogDate) {
+        return !formattedLogDate.isBefore(timeFrom) && !formattedLogDate.isAfter(timeTo);
     }
 
     private String getMessage(String line) {

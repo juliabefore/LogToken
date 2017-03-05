@@ -1,22 +1,26 @@
 package com.miskevich.controller;
 
-import com.miskevich.io.LogAnalyzer;
+import com.miskevich.io.ILogAnalyzer;
 import com.miskevich.io.LogToken;
+import com.miskevich.locator.ServiceLocator;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
+import javafx.fxml.Initializable;
 import javafx.scene.Node;
 import javafx.scene.control.*;
 import javafx.scene.control.TextField;
 import javafx.scene.control.cell.PropertyValueFactory;
 import javafx.stage.FileChooser;
 import java.io.File;
+import java.net.URL;
 import java.time.LocalDateTime;
 import java.time.Month;
 import java.util.Collection;
+import java.util.ResourceBundle;
 
-public class Controller {
+public class Controller implements Initializable{
 
     @FXML
     private TextField hhFrom;
@@ -43,25 +47,22 @@ public class Controller {
     @FXML
     private TableColumn<LogToken, String> message;
 
-    private String PATH_FROM_USER;
+    private String pathToLogFileFromUser;
+
+    private ILogAnalyzer logAnalyzer;
+
+    public Controller() {
+        ServiceLocator serviceLocator = ServiceLocator.getInstance();
+        logAnalyzer = serviceLocator.get(ILogAnalyzer.class);
+    }
 
     public void showLogTokens() {
-
         LocalDateTime timeFrom = getLocalDateTimeFrom();
         LocalDateTime timeTo = getLocalDateTimeTo();
 
-        LogAnalyzer logAnalyzer = new LogAnalyzer();
-        Collection<LogToken> tokenCollection = logAnalyzer.scanLog(PATH_FROM_USER, timeFrom, timeTo);
-
+        Collection<LogToken> tokenCollection = logAnalyzer.scanLog(pathToLogFileFromUser, timeFrom, timeTo);
         ObservableList<LogToken> obs = FXCollections.observableArrayList();
-
-        for (LogToken logToken : tokenCollection) {
-            obs.add(logToken);
-        }
-
-        time.setCellValueFactory(new PropertyValueFactory<>("time"));
-        method.setCellValueFactory(new PropertyValueFactory<>("method"));
-        message.setCellValueFactory(new PropertyValueFactory<>("message"));
+        obs.addAll(tokenCollection);
         tokenTableView.setItems(obs);
     }
 
@@ -94,7 +95,14 @@ public class Controller {
         Node node = (Node) event.getSource();
         File file = fileChooser.showOpenDialog(node.getScene().getWindow());
         if(file != null){
-            PATH_FROM_USER = String.valueOf(file);
+            pathToLogFileFromUser = String.valueOf(file);
         }
+    }
+
+    @Override
+    public void initialize(URL location, ResourceBundle resources) {
+        time.setCellValueFactory(new PropertyValueFactory<>("time"));
+        method.setCellValueFactory(new PropertyValueFactory<>("method"));
+        message.setCellValueFactory(new PropertyValueFactory<>("message"));
     }
 }
